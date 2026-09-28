@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # The board model, the solver, the generator and the shipped pool are all pure ES modules:
+  # no browser and no install step. Two rows are the reason this job exists:
+  #   * bfs3.test.mjs + solve.test.mjs — every one of the 181,440 reachable 3x3 positions is
+  #     searched exhaustively (9!/2, diameter 31, exactly two boards at that distance), and
+  #     the IDA* optimum is then required to equal that BFS distance;
+  #   * library.test.mjs — re-solves every row of js/data/lots.js, so a hand-edited par or a
+  #     stale bake fails the build instead of shipping.
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax
+        run: for f in js/*.js js/*/*.js server.cjs tools/*.mjs test/*.mjs; do node --check "$f"; done
+      - name: Suites
+        run: for f in test/*.test.mjs; do echo "::group::$f"; node "$f"; echo "::endgroup::"; done
+
+  # The shell is only proven by driving a real page with real mouse events: the canvas hit
+  # test, the click-and-drag gesture, the illegal-press rule and the save file all live
+  # behind `window.slide15`.
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Headless playtest
+        env:
+          SKIP_UNIT: 1
+          WD_TIMEOUT: 240
+        run: bash tools/verify.sh

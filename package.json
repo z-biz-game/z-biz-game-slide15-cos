@@ -1,0 +1,32 @@
+{
+  "name": "slide15",
+  "version": "1.0.0",
+  "description": "十五数字盘 SLIDE15 — 浏览器原生数字推盘. 每一关的\"最少几步\"是 IDA*(additive Manhattan + linear conflict)量出来的最优解, 可解性由逆序奇偶定理判定, 并与 3×3 上 181,440 个可达态的完整 BFS 对过账.",
+  "type": "module",
+  "main": "server.cjs",
+  "scripts": {
+    "start": "node server.cjs 5192",
+    "serve": "node server.cjs 5192",
+    "dev": "node server.cjs 5193",
+    "check": "for f in js/*.js js/*/*.js server.cjs tools/*.mjs test/*.mjs; do node --check \"$f\" || exit 1; done && echo OK",
+    "unit": "for f in test/*.test.mjs; do node \"$f\" || exit 1; done",
+    "test": "npm run check && node --test test/",
+    "bake": "node tools/bake.mjs",
+    "verify": "bash tools/verify.sh"
+  },
+  "keywords": [
+    "game",
+    "puzzle",
+    "15-puzzle",
+    "sliding-puzzle",
+    "ida-star",
+    "manhattan-distance",
+    "linear-conflict",
+    "parity",
+    "zero-dependency"
+  ],
+  "author": "z-biz-game",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

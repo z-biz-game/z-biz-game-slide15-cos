@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161a">
+<meta name="description" content="十五数字盘：把打乱的数字滑回顺序。每一关的「最少几步」是 IDA*（additive Manhattan + linear conflict）量出来的最优解长度，可解性由逆序奇偶定理判定，并与 3×3 上全部 181,440 个可达态的完整 BFS 对过账。">
+<!-- An inline SVG favicon, not `href="data:,"`: the empty form makes the browser fall back to
+     /favicon.ico, and that 404 lands in the console log tools/playtest.mjs asserts is clean. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='6'%20fill='%23101217'/%3E%3Cg%20fill='%23d8a13c'%3E%3Crect%20x='4'%20y='4'%20width='10'%20height='10'%20rx='2.5'/%3E%3Crect%20x='18'%20y='4'%20width='10'%20height='10'%20rx='2.5'%20fill='%2378dcff'/%3E%3Crect%20x='4'%20y='18'%20width='10'%20height='10'%20rx='2.5'/%3E%3C/g%3E%3C/svg%3E">
+<title>十五数字盘 · SLIDE15</title>
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<header class="topbar">
+  <h1 class="brand"><span class="brand-mark">▦</span>十五数字盘<small>SLIDE15</small></h1>
+  <nav class="modes" id="modes" aria-label="模式">
+    <button type="button" data-mode="campaign">战役</button>
+    <button type="button" data-mode="daily">每日</button>
+    <button type="button" data-mode="random">随机</button>
+  </nav>
+  <p class="totals" id="totals"></p>
+</header>
+
+<main class="stage">
+  <section class="board">
+    <canvas id="board" aria-label="数字盘：点击或拖动与空格相邻的方块即可滑动"></canvas>
+    <!-- Fixed height on purpose: the message line shares the canvas's grid row budget, and if
+         it grew the canvas box would shrink under it — the hit test maps client pixels through
+         the geometry measured at the last layout, so a message appearing must not be able to
+         move a tile out from under the player's finger. -->
+    <p class="hint-line" id="hintline"></p>
+    <div class="curtain" id="curtain" hidden>
+      <div class="curtain-card">
+        <p class="stars" id="stars"></p>
+        <h2 id="verdict"></h2>
+        <p class="tally" id="tally"></p>
+        <div class="curtain-actions">
+          <button type="button" id="again">再来一次</button>
+          <button type="button" id="next" class="primary">下一关</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <p class="crumbs" id="crumbs"></p>
+    <dl class="readout" id="readout"></dl>
+    <div class="controls">
+      <button type="button" id="undo">撤销</button>
+      <button type="button" id="hint">提示</button>
+      <button type="button" id="demo">演示</button>
+      <button type="button" id="restart">重开</button>
+      <button type="button" id="share">分享</button>
+    </div>
+    <div class="shelf" id="shelf"></div>
+    <details class="about">
+      <summary>这一关的数字从哪来</summary>
+      <p>一块与空格正交相邻的板子滑一次算一步。<code>js/core/solve.js</code> 用 IDA* 配可采纳下界（每块棋的曼哈顿距离之和，再加<em>线性冲突</em>：同一行里两个目标位置互相挡住了行）搜出来的<em>第一条解</em>就是最短解，所以印在屏幕上的 <code>最少 N 步</code> 是一个证明，不是估计。搜索耗尽预算的板子会被丢掉（<code>truncated</code>），永远不会带着一个门槛值上桌。</p>
+      <p>这个搜索器不是自己给自己打分：<code>js/core/bfs3.js</code> 从目标态把 3×3 的可达态全部走完，得到 <code>181,440 = 9!/2</code> 个态、直径 <code>31</code>、直径上恰好 <code>2</code> 个态；<code>node test/bfs3.test.mjs</code> 拿这张表逐条对账 IDA* 的答案，<code>node test/parity.test.mjs</code> 再拿逆序奇偶定理对账它的可达性。手写 fixture <code>8 7 6 / 5 4 3 / 2 1 _</code> 的最优值是实测的 <code>30</code> 步。</p>
+      <p>难度带也不是拍脑袋：打乱只是提议，一块板子属于哪一档由<em>实测最优值</em>决定，出带的、搜不动的都计数并丢弃，<code>node tools/bake.mjs</code> 会把每档的接受率与耗时打出来并写进 <code>js/data/lots.js</code>。</p>
+      <p class="save">成绩只存在这台设备的浏览器里。<button type="button" id="wipe">清空存档</button></p>
+    </details>
+  </aside>
+</main>
+
+<p class="toast" id="toast" hidden></p>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
