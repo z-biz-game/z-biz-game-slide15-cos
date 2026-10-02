@@ -26,6 +26,7 @@ function blank() {
     daily: {},
     unlocked: 1,
     stats: { solves: 0, perfect: 0, slides: 0 },
+    muted: false,
   };
 }
 
@@ -33,12 +34,11 @@ let cache = null;
 
 function load() {
   if (cache) return cache;
-  const ls = backing();
   let raw = null;
   try {
-    raw = ls ? ls.getItem(KEY) : null;
+    raw = localStorage.getItem(KEY);
   } catch {
-    raw = null;
+    raw = null; // 宿主禁止访问（隐私模式 / 第三方 Cookie 拦截）：今天只能内存态
   }
   if (raw) {
     try {
@@ -50,6 +50,7 @@ function load() {
           daily: p.daily && typeof p.daily === 'object' ? p.daily : base.daily,
           unlocked: Number(p.unlocked) > 0 ? Number(p.unlocked) : base.unlocked,
           stats: { ...base.stats, ...(p.stats || {}) },
+          muted: !!p.muted,
         };
         return cache;
       }
@@ -62,13 +63,11 @@ function load() {
 }
 
 function persist() {
-  const ls = backing();
-  if (!ls) return false;
   try {
-    ls.setItem(KEY, JSON.stringify(cache));
+    localStorage.setItem(KEY, JSON.stringify(cache));
     return true;
   } catch {
-    return false;
+    return false; // 配额或宿主拒绝写入：内存里的这份仍然有效，游戏照玩
   }
 }
 
@@ -80,6 +79,14 @@ export const store = {
   // False in node, true in a normal browser tab: the difference between "we saved" and
   // "we remembered until you closed the tab".
   get persistent() { return backing() !== null; },
+
+  get muted() { return !!load().muted; },
+  setMuted(next) {
+    const s = load();
+    s.muted = !!next;
+    persist();
+    return s.muted;
+  },
 
   record(id) {
     return load().records[id] || null;

@@ -48,6 +48,13 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
   let last = 0;
   let warm = 0; // first frames always repaint, so the canvas is never blank
 
+  // prefers-reduced-motion：减弱动效时关掉抖动/涟漪脉冲，并让方块瞬时归位（不做滑行补间）。
+  const reduceMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  let rm = reduceMotion ? reduceMotion.matches : false;
+  if (reduceMotion && reduceMotion.addEventListener) {
+    reduceMotion.addEventListener('change', (e) => { rm = e.matches; });
+  }
+
   function measure() {
     const box = canvas.getBoundingClientRect();
     const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
@@ -344,7 +351,7 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
       ctx.stroke();
     }
     if (hint && hint.cell === cell) {
-      const t = (performance.now() % 1100) / 1100;
+      const t = rm ? 0.35 : (performance.now() % 1100) / 1100;
       ctx.lineWidth = 2 + t * 4;
       ctx.strokeStyle = `rgba(120, 220, 255, ${(0.9 - t * 0.6).toFixed(3)})`;
       roundRect(ctx, x - s / 2 - 5 - t * 6, y - s / 2 - 5 - t * 6, s + 10 + t * 12, s + 10 + t * 12, r + 5);
@@ -375,6 +382,13 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
       if (v === 0) continue;
       const tx = i % n;
       const ty = Math.floor(i / n);
+      if (rm) {
+        // 减弱动效：瞬时归位，不补间、不抖动。
+        ax[v] = tx;
+        ay[v] = ty;
+        shake[v] = 0;
+        continue;
+      }
       const dx = tx - ax[v];
       const dy = ty - ay[v];
       if (Math.abs(dx) > 0.002 || Math.abs(dy) > 0.002) {

@@ -34,6 +34,11 @@
     <button type="button" data-mode="random">随机</button>
   </nav>
   <p class="totals" id="totals"></p>
+  <div class="hud">
+    <button type="button" id="help" aria-label="玩法说明" title="玩法说明（?）">?</button>
+    <button type="button" id="mute" aria-label="静音开关" aria-pressed="false" title="静音（M）">♪</button>
+    <button type="button" id="fullscreen" aria-label="全屏" title="全屏（F）">⛶</button>
+  </div>
 </header>
 
 <main class="stage">
@@ -77,6 +82,28 @@
     </details>
   </aside>
 </main>
+
+<div class="help" id="help" hidden>
+  <div class="help-card">
+    <h2><span class="brand-mark">▦</span>怎么玩 · SLIDE15</h2>
+    <ol>
+      <li>只有<em>紧贴空格（右下角那个洞）</em>的块推得动，其余块点了不消耗步数。</li>
+      <li>点一下贴着洞的块、或朝洞的方向拖动它，它就滑进洞里 —— 这算一步。</li>
+      <li>把 <code>1..N</code> 依次滑回顺序即复原。屏幕上的「最少 N 步」是 IDA* 证出的最优解，不是估计。</li>
+    </ol>
+    <div class="keys">
+      <kbd>← ↑ → ↓</kbd><span>朝该方向把块推进空格（也可点击 / 拖动）</span>
+      <kbd>U</kbd><span>撤销一步</span>
+      <kbd>H</kbd><span>提示下一手</span>
+      <kbd>D</kbd><span>演示一条最短路线</span>
+      <kbd>R</kbd><span>重开本关</span>
+      <kbd>M</kbd><span>静音 / 取消静音</span>
+      <kbd>F</kbd><span>全屏</span>
+      <kbd>?</kbd><span>打开 / 关闭本说明</span>
+    </div>
+    <button type="button" id="help-close" class="help-close">开始滑动</button>
+  </div>
+</div>
 
 <p class="toast" id="toast" hidden></p>
 <script type="module" src="js/main.js"></script>

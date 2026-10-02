@@ -14,6 +14,7 @@ import {
 import { todayKey } from './core/rng.js';
 import { toArray, goalState } from './core/puzzle.js';
 import { createView } from './view.js';
+import { createAudio } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -22,6 +23,7 @@ const el = {
   verdict: $('verdict'), tally: $('tally'), undo: $('undo'), hint: $('hint'), demo: $('demo'),
   restart: $('restart'), share: $('share'), next: $('next'), again: $('again'),
   toast: $('toast'), canvas: $('board'), wipe: $('wipe'),
+  help: $('help'), mute: $('mute'), fullscreen: $('fullscreen'), helpClose: $('help-close'),
 };
 
 const LOTS = ALL.length;
@@ -85,9 +87,17 @@ function resolve(rt) {
   return { lot, label: `第 ${rt.index} 关`, note: `共 ${LOTS} 关 · ${bandByKey(lot.band).label}` };
 }
 
+const audio = createAudio({ isMuted: () => store.muted });
+if (store.muted) {
+  audio.setMuted(true);
+  el.mute.setAttribute('aria-pressed', 'true');
+  el.mute.textContent = '🔇';
+}
+
 const view = createView(el.canvas, {
   onSlide: (pos) => commit(pos),
   onIllegal: (pos, value) => {
+    audio.illegal();
     const n = app.game ? app.game.n : 3;
     say(`<b>${value}</b> 号块（第 ${Math.floor(pos / n) + 1} 行第 ${pos % n + 1} 列）挨不着空格 —— 只有贴着空格的块推得动`);
   },
@@ -228,6 +238,7 @@ function commit(pos) {
     view.redraw();
     return false;
   }
+  audio.slide();
   if (app.game.done) finish();
   else {
     view.redraw();
@@ -256,6 +267,7 @@ function finish() {
   el.tally.innerHTML = `你的 <b>${g.moves}</b> 滑 · IDA* 最少 <b>${lot.par}</b> 滑 · 提示 <b>${app.hints}</b>`
     + (rec.best === g.moves ? '<br>这是这一关的最好成绩' : '');
   el.next.hidden = !nextIndex;
+  audio.win();
   el.curtain.hidden = false;
   render();
   view.redraw();
@@ -345,6 +357,7 @@ el.hint.addEventListener('click', () => {
   app.hints++;
   const d = describe(hintCache.path[0]);
   view.showHint(hintCache.path[0]);
+  audio.hint();
   say(`提示：把 <b>${d.tile}</b> 号块向<b>${d.dir}</b>推进空格 · 从这一格起还要 <b>${hintCache.moves - 1}</b> 滑（实测 ${hintCache.nodes} 结点）`);
   renderCrumbs();
 });
@@ -440,12 +453,66 @@ el.wipe.addEventListener('click', () => {
   apply();
 });
 
+// ---- HUD：静音 / 全屏 / 玩法说明 ----------------------------------------------
+// 静音是"真静音"：翻转后把结果交给 audio.setMuted()（内部 suspend/resume AudioContext），
+// 并落盘到存档，下次打开还是这个态。按钮的 aria-pressed 与字形同步，读屏与肉眼都对得上。
+function toggleMute() {
+  const next = !audio.muted;
+  audio.setMuted(next);
+  store.setMuted(next);
+  el.mute.setAttribute('aria-pressed', String(next));
+  el.mute.textContent = next ? '🔇' : '♪';
+  el.mute.setAttribute('aria-label', next ? '取消静音' : '静音');
+}
+el.mute.addEventListener('click', toggleMute);
+
+function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) {
+      const p = document.exitFullscreen && document.exitFullscreen();
+      if (p && p.catch) p.catch(() => {});
+    } else {
+      const el0 = document.documentElement;
+      const req = el0.requestFullscreen || el0.webkitRequestFullscreen;
+      if (req) { const p = req.call(el0); if (p && p.catch) p.catch(() => {}); }
+    }
+  } catch { /* 全屏被宿主拒绝：按钮不改变游戏可用性 */ }
+}
+el.fullscreen.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', () => {
+  el.fullscreen.setAttribute('aria-pressed', String(!!document.fullscreenElement));
+});
+
+function openHelp() {
+  el.help.hidden = false;
+  if (el.helpClose) el.helpClose.focus();
+}
+function closeHelp() {
+  el.help.hidden = true;
+}
+function toggleHelp() {
+  if (el.help.hidden) openHelp(); else closeHelp();
+}
+el.help.addEventListener('click', (ev) => { if (ev.target === el.help) closeHelp(); });
+if (el.helpClose) el.helpClose.addEventListener('click', closeHelp);
+
+// 自动播放策略：AudioContext 只能在真实手势后唤醒。首次点击/按键时若未静音就 resume()。
+function wakeAudio() { if (!audio.muted) audio.resume(); }
+window.addEventListener('pointerdown', wakeAudio, { once: true });
+window.addEventListener('keydown', wakeAudio, { once: true });
+
 window.addEventListener('hashchange', apply);
 window.addEventListener('resize', () => view.measure());
 window.addEventListener('keydown', (ev) => {
   if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
   const k = ev.key;
-  if (k === 'Escape' && !el.curtain.hidden) { el.curtain.hidden = true; return; }
+  if (k === 'Escape') {
+    if (!el.help.hidden) { closeHelp(); return; }
+    if (!el.curtain.hidden) { el.curtain.hidden = true; return; }
+  }
+  if (k === '?' || (k === '/' && ev.shiftKey)) { toggleHelp(); return; }
+  if (k === 'm' || k === 'M') { toggleMute(); return; }
+  if (k === 'f' || k === 'F') { toggleFullscreen(); return; }
   if (k === 'u' || k === 'U') { el.undo.click(); return; }
   if (k === 'h' || k === 'H') { el.hint.click(); return; }
   if (k === 'r' || k === 'R') { el.restart.click(); return; }
@@ -495,8 +562,15 @@ window.slide15 = {
       curtain: !el.curtain.hidden,
       demo: !!demoTimer,
       persistent: store.persistent,
+      muted: audio.muted,
+      audio: audio.state,
+      help: !el.help.hidden,
     };
   },
+  toggleMuteOnce() { toggleMute(); return audio.muted; },
+  toggleFullscreen() { toggleFullscreen(); return !!document.fullscreenElement; },
+  openHelp() { openHelp(); return !el.help.hidden; },
+  closeHelp() { closeHelp(); return !el.help.hidden; },
   get pool() { return poolStats(); },
   get bands() { return BANDS; },
   // The 3×3 truth table, on demand and never at boot: `js/core/bfs3.js` is deliberately not
