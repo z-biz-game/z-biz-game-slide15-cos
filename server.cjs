@@ -13,6 +13,7 @@ const TYPES = {
   '.cjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
@@ -36,8 +37,9 @@ function createServer(root = __dirname) {
     fs.stat(file, (err, st) => {
       if (err || !st.isFile()) {
         // Hash routes live in the URL fragment, so a missing file really is a missing file.
-        // The favicon is inlined in index.html for the same reason: a 404 here would pollute
-        // the clean-console assertion in tools/playtest.mjs.
+        // Every icon/manifest the page references is a real file on disk served below, so a
+        // 404 here would be a genuine broken link — and tools/playtest.mjs asserts the console
+        // stays clean.
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('404');
         return;
       }
