@@ -12,7 +12,9 @@
     "unit": "for f in test/*.test.mjs; do node \"$f\" || exit 1; done",
     "test": "npm run check && node --test test/",
     "bake": "node tools/bake.mjs",
-    "verify": "bash tools/verify.sh"
+    "verify": "bash tools/verify.sh",
+    "deploy-set": "node tools/deploy-set.mjs",
+    "deploy-set:selftest": "node tools/deploy-set-selftest.mjs"
   },
   "keywords": [
     "game",
