@@ -59,6 +59,34 @@
       <button type="button" id="share">分享</button>
       <button id="btn-fullscreen" type="button" aria-pressed="false" title="全屏（F）">全屏</button>
     </div>
+    <!-- 玩法说明块：引擎里没有规则文字表（没有 RULE_TEXT 之类的导出），规则只以代码存在，
+         所以下面每一句都对着一个函数写，改代码的人能逐条对回去，别让这块自己长出第二套口径：
+           目标盘面 1..n²-1 顺序、空格在最后一格 → js/core/puzzle.js 的 goalState (L22-31) 与 isGoal (L33-37)
+           唯一动作 = 与空格正交相邻的一块滑进空格 → js/core/puzzle.js 的 slidePositions (L67-69) 与 canSlide (L71-76)
+           一次滑动记一步 → js/core/game.js 的 tap (L43-52)
+           只有相邻的块推得动，不相邻的按下去不计步 → game.js 的 tap 里 `if (!canSlide(...)) return 0` (L44-45)
+             与 view.js 的 shake + onIllegal (L191-195)、main.js 的人话读数 (L92)
+           按在空格上/桌面空白处什么也不发生 → js/view.js 的 down 里 `if (cell < 0) return` (L180) 与 `if (value === 0) return` (L190)
+           拖过三分之一格即提交、朝反方向拖只是改主意 → js/view.js 的 move (L217-233) 的 travel 与 0.34 阈值
+           「在位」= 已在各自目标格上的块数（空格不算块） → js/main.js 的 homeCount (L118-123)
+           「最少」= IDA* 证明的最优滑数 → js/main.js 的 readout (L142) 与 js/core/solve.js
+           3×3 与 4×4 两种盘面 → js/data/lots.js 的 TIERS_META 全部 7 档（4 档 3×3 + 3 档 4×4）与 main.js 的「盘面」读数 (L146)
+           三档评级 → js/core/game.js 的 grade (L73-78)
+           提示现场搜一次最短路线只报下一步 → js/main.js 的 hint 监听 (L335-349)；预算耗尽时明说 (L342)
+           演示 = 把一条最短路线逐步走给你看，220ms 一步 → js/main.js 的 startDemo (L356-375)
+           撤销 = 同一对格子再换一次、步数跟着退 → js/core/game.js 的 undo (L55-62) 与 puzzle.js 的 swap 注释 (L78-85)
+           不会给出无解的盘 → js/core/parity.js 的逆序奇偶定理 (L1-8, L29+)、tools/bake.mjs 的 solvable 过滤与出货复核 (L167-168)
+           键盘 U/H/D/R/Esc/F → js/main.js 的 keydown (L445-452) 与全屏 IIFE (L653+) -->
+    <details class="about">
+      <summary>玩法：怎么滑、怎么算赢</summary>
+      <p><strong>目标</strong>：把数字按 1、2、3… 的顺序排好，空格落到最后一格。面板的 <code>在位</code> 是已经坐到自己那一格上的块数（空格不算块），<code>最少</code> 是 IDA* 证明出来的最优滑数，<code>超出</code> 是你比它多滑了多少。</p>
+      <p><strong>怎么操作</strong>：点一下<strong>和空格上下左右相邻</strong>的方块，它就滑进空格，<code>已滑</code> +1。也可以按住它朝空格的方向拖过三分之一格再松手，效果一样。</p>
+      <p><strong>几条限制</strong>：只有贴着空格的块推得动 —— 按在别处的块会抖一下，并报出它「第 X 行第 Y 列」挨不着空格，<strong>不计步</strong>（所以这个步数数的是滑动，不是乱按）。按在空格上或桌面空白处什么也不会发生；朝反方向拖只是改主意，不算一步。</p>
+      <p><strong>盘面</strong>：这一关可能是 3×3（8 块数字）或 4×4（15 块），见面板 <code>盘面</code> 一栏。七个难度带就是按实测最优步数分的档。</p>
+      <p><strong>几档才算好</strong>：不超过 <code>最少</code> 是 ★★★「分毫不差」；多滑不超过 4 步、或者不超过最少步数的两成（取大的那个）是 ★★「干净归位」；再多是 ★「终归复原」。</p>
+      <p><strong>提示与演示</strong>：<code>提示</code> 会在<strong>当前</strong>盘面上现场搜一次最短路线，只报下一步（把 X 号块向某个方向推进空格），并告诉你从这一格起还要几滑；这一盘超出即时预算时它会直说算不动。点 <code>演示</code> 则把一条最短路线一步一步走给你看，220ms 一步。撤销就是把刚才交换的那两格再换一次，所以每一步都能原路退回，步数也跟着退。</p>
+      <p><strong>不会给你无解的盘</strong>：滑块越过空格不改变排列的奇偶，所以一半的排法根本到不了目标 —— 构建期按逆序奇偶定理筛过，搜不动的盘也一并丢掉，你拿到的每一盘都能滑回去。</p>
+    </details>
     <div class="shelf" id="shelf"></div>
     <details class="about">
       <summary>这一关的数字从哪来</summary>
