@@ -46,6 +46,15 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
   let moving = false; // is any tile still travelling (or still shaking)? `settled()` reads it
   let raf = 0;
   let last = 0;
+
+  // ---- 减弱动效（prefers-reduced-motion）----
+  // 两处装饰：① 提示环 t = (now % 1100) / 1100 喂给线宽、外扩与透明度；② 被拒的那块
+  // 抖 jitter = Math.sin(shake[v] * 26) * shake[v] * cell * 0.07。
+  // 判据：被拒本来就有 onIllegal 那句人话读数（"…号块挨不着空格 —— 只有贴着空格的块
+  // 推得动"），抖动是叠在读数上的装饰，归零位移不损失信息；提示环本体一律留着。
+  // ax/ay 那一路是**状态反馈**（块正被推到哪一格），刻意不碰。与 hashi / nine-rings 同口径。
+  let reduceMotion = false;
+  const ringPhase = () => (reduceMotion ? 0.5 : (performance.now() % 1100) / 1100);
   let warm = 0; // first frames always repaint, so the canvas is never blank
 
   function measure() {
@@ -283,7 +292,7 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
     const cell = cellOf(value);
     const can = live.indexOf(cell) >= 0;
     const home = game.state[cell] === goal[cell];
-    const jitter = shake[value] > 0 ? Math.sin(shake[value] * 26) * shake[value] * geom.cell * 0.07 : 0;
+    const jitter = shake[value] > 0 && !reduceMotion ? Math.sin(shake[value] * 26) * shake[value] * geom.cell * 0.07 : 0;
     const d = drag && drag.value === value ? drag : null;
     const travel = d ? Math.min(d.travel, geom.cell) : 0;
     const x = geom.x0 + (ax[value] + 0.5) * geom.cell + (d ? d.ux * travel + jitter : jitter);
@@ -344,7 +353,7 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
       ctx.stroke();
     }
     if (hint && hint.cell === cell) {
-      const t = (performance.now() % 1100) / 1100;
+      const t = ringPhase();
       ctx.lineWidth = 2 + t * 4;
       ctx.strokeStyle = `rgba(120, 220, 255, ${(0.9 - t * 0.6).toFixed(3)})`;
       roundRect(ctx, x - s / 2 - 5 - t * 6, y - s / 2 - 5 - t * 6, s + 10 + t * 12, s + 10 + t * 12, r + 5);
@@ -440,6 +449,16 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
   }
 
   return {
+    // The gate the runtime pref flip lands on: idempotent, repaints so a tile stops mid-jitter
+    // on the frame the setting changes rather than at the end of the decay.
+    setReduceMotion(v) {
+      const on = !!v;
+      if (on === reduceMotion) return reduceMotion;
+      reduceMotion = on;
+      if (reduceMotion) draw();
+      return reduceMotion;
+    },
+    isReducedMotion: () => reduceMotion,
     attach(next) {
       game = next;
       goal = goalState(widthOf(next.state));
