@@ -50,7 +50,7 @@ if [ "${IGNORE_ORPHANS:-}" != "1" ]; then
     echo "clean it up (lsof -nP -iTCP:$WEB_PORT -sTCP:LISTEN), or set WEB_PORT=<free port>." >&2
     exit 6
   fi
-  LEFT=$(pgrep -f "remote-debugging-port" 2>/dev/null | wc -l | tr -d ' ')
+  LEFT=$(ps -Ao command= | awk '/remote-debugging[-]port/ && !/--type=/' | wc -l | tr -d ' ')  # instances, not processes
   if [ "$LEFT" != "0" ]; then
     echo "note: $LEFT headless Chrome process(es) with a debug port are already running elsewhere on" >&2
     echo "      this machine. Ports :$CDP_PORT/:$WEB_PORT are free, so this run will not read them," >&2
