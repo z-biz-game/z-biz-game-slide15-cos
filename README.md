@@ -106,7 +106,7 @@ server.cjs                      test/bfs3.test.mjs     test/game.test.mjs
 test/heur.test.mjs              test/library.test.mjs  test/make.test.mjs
 test/parity.test.mjs            test/puzzle.test.mjs   test/rng.test.mjs
 test/solve.test.mjs             test/storage.test.mjs
-tools/bake.mjs                  tools/harness.mjs / tools/assemble-site / tools/deploy-set / tools/deploy-set-selftest
+tools/bake.mjs                  tools/harness.mjs
 tools/playtest.mjs              tools/verify.sh
 ```
 
