@@ -50,12 +50,12 @@ start / serve   node server.cjs 5192
 dev             node server.cjs 5193
 check           for f in js/*.js js/*/*.js server.cjs tools/*.mjs test/*.mjs; do node --check "$f" || exit 1; done && echo OK
 unit            for f in test/*.test.mjs; do node "$f" || exit 1; done
-test            npm run check && node --test test/
+test            npm run check && node --test --test-reporter=spec test/*.test.mjs
 bake            node tools/bake.mjs
 verify          bash tools/verify.sh
 ```
 
-`npm test` 是日常总闸（本轮跑过，见第四节）。`npm run unit` 是同一个套件集合换一种跑法，`tools/verify.sh:105` 用的就是这条循环。`npm start` 起本地静态服务在 5192，`npm run dev` 在 5193，`server.cjs:64` 的取值顺序是命令行参数、环境变量 `PORT`、然后 5192，起服务后打印 `十五数字盘 SLIDE15 served at http://127.0.0.1:<port>/`。`npm run bake` 重写 `js/data/lots.js`（本轮在仓库外的副本里跑过，见第六节）。`npm run verify` 起 Chrome、起服务、跑完 6 个场景后打印 `=== ALL GREEN ===`；本轮没有执行它——这台机器上另有一个仓的 headless Chrome 带着 `--remote-debugging-port=9373` 在听，浏览器台架同一时刻只留一个。
+`npm test` 是日常总闸（本轮跑过，见第四节；它把套件交给**显式文件列表** `test/*.test.mjs`，与 `npm run unit`、`tools/verify.sh` 那两条一样的展开方式——目录参数交给 test runner 之后展开成什么是 node 版本的事，总闸不赌这个）。`npm run unit` 是同一个套件集合换一种跑法，`tools/verify.sh:105` 用的就是这条循环。`npm start` 起本地静态服务在 5192，`npm run dev` 在 5193，`server.cjs:64` 的取值顺序是命令行参数、环境变量 `PORT`、然后 5192，起服务后打印 `十五数字盘 SLIDE15 served at http://127.0.0.1:<port>/`。`npm run bake` 重写 `js/data/lots.js`（本轮在仓库外的副本里跑过，见第六节）。`npm run verify` 起 Chrome、起服务、跑完 6 个场景后打印 `=== ALL GREEN ===`；本轮没有执行它——这台机器上另有一个仓的 headless Chrome 带着 `--remote-debugging-port=9373` 在听，浏览器台架同一时刻只留一个。
 
 烤制量可调：`PER_BAND=2 node tools/bake.mjs`（`tools/bake.mjs:32` 读这个环境变量，缺省 8）。
 
@@ -79,7 +79,7 @@ verify          bash tools/verify.sh
 | `test/storage.test.mjs` | 最佳值单调下降、`localStorage` 不可用时的内存后备 | 7 | 35 | 0 |
 | 合计 |  | **94** | **7394** | **0** |
 
-两种跑法交回同一份总数：`node --test test/` 的尾统计是 `ℹ tests 10 / ℹ pass 10 / ℹ fail 0`（它数的是**文件级**的 10 条，不是断言条数），把 `verify.sh:105-113` 那段循环连同它的 `sed` 原样搬出来跑（不含任何浏览器步骤）则交回 `node assertions total: 7394`。表里 rows 与 asserts 的每一格在这两条路径上逐位相同；**唯一会漂的是耗时**，所以本文不写 `duration_ms`。
+两种跑法交回同一份总数：`node --test --test-reporter=spec test/*.test.mjs` 的尾统计是 `ℹ tests 10 / ℹ pass 10 / ℹ fail 0`（它数的是**文件级**的 10 条，不是断言条数），把 `verify.sh:105-113` 那段循环连同它的 `sed` 原样搬出来跑（不含任何浏览器步骤）则交回 `node assertions total: 7394`。表里 rows 与 asserts 的每一格在这两条路径上逐位相同；**唯一会漂的是耗时**，所以本文不写 `duration_ms`。
 
 浏览器层这一轮没跑，所以只给得出静态计数：`tools/playtest.mjs` 里六个场景的 `rec()` **书写点**分别是 boot 21（602-661）、play 25（663-738）、routes 21（740-799）、save 17（801-849）、reloaded 7（853-867）、pointer 44（287-575），合计 **135** 个书写点（与整文件 `grep -c "rec("` 的 135 相符）。执行行数不会等于这个数：routes 里有一条 `rec()` 写在 `for (const band of g.bands)` 循环内（`playtest.mjs:762-771`，`g.bands` 是七个档），展开后正好是 21 - 1 + 7 = 27 行；pointer 里也有按认证路径逐步展开的循环，同时存在某几条书写点在某次运行的分支上走不到。`deliverable.md` 第 10 行记的那次实跑是 `138 条 / 0 失败`，分区 `@boot 21 @play 25 @routes 27 @save 17 @reloaded 7 @pointer 41`——routes 27 与上面的展开算式吻合，pointer 41 比书写点 44 少 3 条；本轮没执行这一层，所以对那两个数既不复现也不反驳，只把它们当作文档记录列在此处。可以确定的是 `verify.sh:141-167` 只解析 `rows: / fail:` 并让 `fail` 决定成败，**没有任何对行数的断言**。
 
