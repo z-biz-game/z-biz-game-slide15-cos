@@ -149,7 +149,7 @@ tools/playtest.mjs              tools/verify.sh
 
 可重复性用差分验过（本轮重烤的那一份）：把每行的 `ms` 归一化之后，重烤文件与出厂 `js/data/lots.js` **逐字节相同**；不归一化时有 20 行不同，且差异全部落在 `ms` 上。也就是 `id / band / n / state / par / path / nodes / seed` 与 `TIERS_META` 一个都没动。也就是说盘面与解路径由种子完全决定（`js/core/rng.js` 的 `hashSeed` + `mulberry32`），只有耗时不决定——所以 `ms` 是构建期读数，不该被当成性能承诺。
 
-页面给玩家的量纲只有一个：`js/main.js:140-147` 的读盘显示"已滑 / 最少 / 超出 / 最佳 / 在位 / 盘面"，其中 `overPar = Math.max(0, moves - par)`（`main.js:125-127`）。计费只发生在 `commit()` 一处（`main.js:225-240`），鼠标拖拽与点击走同一阈值 `cell * 0.34`（`js/view.js:216, 231-232`）。
+页面给玩家的量纲只有一个：`js/main.js:140-147` 的读盘显示"已滑 / 最少 / 超出 / 最佳 / 在位 / 盘面"，其中 `overPar = Math.max(0, moves - par)`（`main.js:125-127`）。计费只发生在 `commit()` 一处（`main.js:225-240`），鼠标拖拽与点击走同一阈值 `cell * 0.34`（`js/view.js:225` 拖拽、`js/view.js:240` 点击）。
 
 ---
 
