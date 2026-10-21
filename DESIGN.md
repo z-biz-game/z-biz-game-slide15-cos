@@ -141,7 +141,7 @@ node 94 条 / 7394 断言、浏览器 138 条全绿。
 测试只能读到 `toastHidden: true`。补上 `el.share.addEventListener('click', shareLink);`。
 
 **断言写错之一：`超` 字段的算术。** 那条断言写着"两步之后玩家超最少 2 步"，并断言 `over === 2`。
-可是 kerb-02 的 par 是 4，而 `overPar()` 是 `Math.max(0, moves - par)`（`js/main.js:125-127`）：
+可是 kerb-02 的 par 是 4，而 `overPar()` 是 `Math.max(0, moves - par)`（`js/main.js:139-141`）：
 2 滑对 par 4 是**少于**最少，钳在 0。改成断言那个钳值 `over === 0`，同时把"超 2"这件事挪到它
 真正成立的地方 —— 6 滑对 par 4 的那一行，并且那里顺手加了 `over === moves - par` 的交叉检查。
 这不是放宽：同一条性质还在，只是钉在了算术支持的位置。

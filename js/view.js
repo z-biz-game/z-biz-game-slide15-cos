@@ -57,12 +57,9 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
   const ringPhase = () => (reduceMotion ? 0.5 : (performance.now() % 1100) / 1100);
   let warm = 0; // first frames always repaint, so the canvas is never blank
 
-  // prefers-reduced-motion：减弱动效时关掉抖动/涟漪脉冲，并让方块瞬时归位（不做滑行补间）。
-  const reduceMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
-  let rm = reduceMotion ? reduceMotion.matches : false;
-  if (reduceMotion && reduceMotion.addEventListener) {
-    reduceMotion.addEventListener('change', (e) => { rm = e.matches; });
-  }
+  // 减弱动效的**开关在这里，翻开关的动作在 js/main.js**：那边读 matchMedia、订阅系统偏好的
+  // 变化，再调 setReduceMotion(on)。这里不自己再读一次 matchMedia——同一件事两个读者，
+  // 两边各记一份状态，迟早有一份过期（并线时就是这么长出两个同名 reduceMotion 的）。
 
   function measure() {
     const box = canvas.getBoundingClientRect();
@@ -391,7 +388,7 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
       if (v === 0) continue;
       const tx = i % n;
       const ty = Math.floor(i / n);
-      if (rm) {
+      if (reduceMotion) {
         // 减弱动效：瞬时归位，不补间、不抖动。
         ax[v] = tx;
         ay[v] = ty;

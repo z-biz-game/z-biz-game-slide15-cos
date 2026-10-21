@@ -24,6 +24,10 @@ const el = {
   restart: $('restart'), share: $('share'), next: $('next'), again: $('again'),
   toast: $('toast'), canvas: $('board'), wipe: $('wipe'),
   help: $('help'), mute: $('mute'), fullscreen: $('fullscreen'), helpClose: $('help-close'),
+  // 顶栏那颗「?」按钮与说明浮层**必须两个不同的 id**：两者曾共用 id="help"，
+  // 于是 getElementById 拿到的是顶栏按钮（文档里靠前），浮层永远打不开，
+  // 而按钮自己被 hidden = true 藏掉了——按一次 ? 图标就消失。
+  helpBtn: $('help-btn'),
 };
 
 const LOTS = ALL.length;
@@ -495,6 +499,9 @@ function toggleHelp() {
 }
 el.help.addEventListener('click', (ev) => { if (ev.target === el.help) closeHelp(); });
 if (el.helpClose) el.helpClose.addEventListener('click', closeHelp);
+// 顶栏那颗「?」：与 ? 键同一条路（toggleHelp）。这一颗此前没有任何处理器——
+// 它的 id 曾与浮层撞成同一个 getElementById('help')，于是「点按钮开说明」这条路根本没接过。
+if (el.helpBtn) el.helpBtn.addEventListener('click', toggleHelp);
 
 // 自动播放策略：AudioContext 只能在真实手势后唤醒。首次点击/按键时若未静音就 resume()。
 function wakeAudio() { if (!audio.muted) audio.resume(); }

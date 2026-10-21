@@ -67,9 +67,13 @@ function sanitizeRecords(p) {
 
 function load() {
   if (cache) return cache;
+  // 取宿主存储只走 backing() 这一条通道（文件头那句话就是它）：
+  // 少了这一行，下面那句 `ls ? ...` 会抛 ReferenceError，而它正好被 catch 接住 ⇒
+  // 读档永远读成空档，页面看起来"每次都是第一次玩"，而控制台一个字都不吭。
+  const ls = backing();
   let raw = null;
   try {
-    raw = ls ? globalThis.localStorage.getItem(KEY) : null;
+    raw = ls ? ls.getItem(KEY) : null;
   } catch {
     raw = null; // 宿主禁止访问（隐私模式 / 第三方 Cookie 拦截）：今天只能内存态
   }
@@ -98,8 +102,13 @@ function load() {
 }
 
 function persist() {
+  // 写档与读档走同一条通道：backing() 说没有宿主存储就压根不试，
+  // 直接 globalThis.localStorage.setItem 会先抛一次（再被 catch 接住），
+  // 抛与不抛的区别只是控制台里多不多一条红字——而"写不进去"这件事本身不该靠抛来表达。
+  const ls = backing();
+  if (!ls) return false;
   try {
-    globalThis.localStorage.setItem(KEY, JSON.stringify(cache));
+    ls.setItem(KEY, JSON.stringify(cache));
     return true;
   } catch {
     return false; // 配额或宿主拒绝写入：内存里的这份仍然有效，游戏照玩
