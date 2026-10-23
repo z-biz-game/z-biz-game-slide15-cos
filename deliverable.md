@@ -123,7 +123,7 @@ bfs3.distanceHistogram()          32 档，和为 181440，末档 2
 | 3 | **读档恒为空档（刷新后进度全丢）**：`js/core/storage.js` 的 `load()` 写的是 `raw = ls ? globalThis.localStorage.getItem(KEY) : null`，而 `const ls = backing();` 那一行被并线裁掉了（远端侧有；本地侧那版直接写 `localStorage.getItem`，两版合到一起把声明丢了）⇒ ReferenceError 正好被紧跟着的 `catch` 接住 ⇒ **每次读档都读成空档** ⇒ 刷新后 `unlocked` 回到 1、`records` 空、每日那一条也不记得，而控制台一个字都不吭（错误被吞在 catch 里） | 把 `const ls = backing();` 补回 `load()`；顺手把 `persist()` 也收回 `backing()` 这条通道——文件头自己写的就是「every access here goes through `backing()`」，直接写 `globalThis.localStorage` 是**靠抛来表达"写不进去"** |
 | 4 | **玩法说明整块失联**：`index.html` 里顶栏那颗「?」按钮与说明浮层**共用 `id="help"`** ⇒ `getElementById` 拿到的是文档里靠前的按钮 ⇒ `el.help.hidden = false` 改的是按钮、**浮层永远打不开**；`closeHelp()` 把按钮 `hidden = true` ⇒ 按一次 ? 图标就消失。而那颗按钮本来也**没有任何点击处理器**——「点按钮开说明」这条路从来没接过 | 按钮改 `id="help-btn"`，浮层保留 `id="help"`；`el` 表加 `helpBtn`，按钮接 `toggleHelp`（与 `?` 键同一条路）。页面 26 个 id 现在全部唯一，`main.js` 用 `$()` 取的 25 个 id 一个都不悬空 |
 | 5 | **并线丢了三段 CSS**：`css/game.css` 里没有 `.hud`（顶栏三颗按钮的样式，≥44px 真命中区）、没有 `.help`（说明浮层的遮罩与卡片）、没有 `@media (prefers-reduced-motion: reduce)`（CSS 过渡/动画压制）——HTML 与 JS 里对应的功能都在，只有样式没了 | 按本地侧原文**逐字补回**这三段（不改一个数值）。说明浮层即使能打开也有遮罩与卡片了；减弱动效下 CSS 动画不再照播 |
-| 6 | **文档行号钉指着更早一版文件**：README/DESIGN 里那批 `js/main.js:NN` / `js/view.js:NN` / `server.cjs:NN` 指的是更早一版文件的行号（并线与本地侧那次改动各挪过一次），文档腿 D2 点名「`server.cjs:64` 那几行整段是空行」 | 逐条按现在的文件重新定位并钉回去（`HINT_BUDGET` 41、`solve` 那句 346、`overPar` 139-141、`field()` 143-145、`commit()` 239-255、`parseHash` 63-70、键盘处理 513-539、`bfs3` 动态 import 588/649、拖拽与点击阈值 `view.js` 229/244、端口解析 `server.cjs:66`）。**钉的是实数，强度不变** |
+| 6 | **文档行号钉指着更早一版文件**：README/DESIGN 里那批 `js/main.js:NN` / `js/view.js:NN` / `server.cjs:NN` 指的是更早一版文件的行号（并线与本地侧那次改动各挪过一次），文档腿 D2 点名「server.cjs 第 64 行那几行整段是空行」（旧钉值只作留痕，故意不写成 `路径:行号` 的活引用形状——那个形状会被当轮引用判） | 逐条按现在的文件重新定位并钉回去（`HINT_BUDGET` 41、`solve` 那句 346、`overPar` 139-141、`field()` 143-145、`commit()` 239-255、`parseHash` 63-70、键盘处理 513-539、`bfs3` 动态 import 588/649、拖拽与点击阈值 `view.js` 229/244、端口解析 `server.cjs:66`）。**钉的是实数，强度不变** |
 | 7 | **manifest 主题色与页面实际配色对不上**：`manifest.webmanifest` 写 `background/theme = #0a0a12`，而 `css/game.css` 的 `--bg` 是 `#101217`、页面 `meta theme-color` 是 `#14161a` ⇒ 装到桌面后的壳色与页面本身不是一个色（这个 `#0a0a12` 在远端侧自己的 CSS 上就对不上，是那边的旧值） | 取本地侧那两个值（`#101217` / `#14161a`），与 CSS 和页面 meta 同源 |
 
 ### 改钉一览（钉的是实数，强度不变）
@@ -257,7 +257,7 @@ rows: 53 fail: 0
 | 刷新后进度全丢 | 并线把 `load()` 里 `const ls = backing();` 裁掉，错误又被 catch 吞掉 | `@reloaded` 红 4 条：「a fresh page reads its progress off disk {"unlocked": 1, "records": []}」 |
 | 说明浮层打不开、? 图标点一下就消失 | 按钮与浮层共用 `id="help"`（本地侧本来就撞，并线把它原样带了过来） | `b8a2ae8:index.html` 第 29 行与第 106 行都是 `id="help"`；`getElementById` 取文档里靠前的那个 |
 | 顶栏按钮与浮层没样式 | 并线把本地侧三段 CSS 整块裁掉 | `b8a2ae8:css/game.css` 里没有 `.hud` / `.help` / `prefers-reduced-motion`；本地侧 `b8a2ae8^1:css/game.css` 第 106-136 行有 |
-| 文档腿红 1 条 | README 的行号钉指着更早一版文件 | 合并基线跑 `node tools/docs-test.mjs`：`D2 边界 … 不在的 1 处：README.md · server.cjs:64 那几行整段是空行` |
+| 文档腿红 1 条 | README 的行号钉指着更早一版文件 | 合并基线跑 `node tools/docs-test.mjs`：`D2 边界 … 不在的 1 处：README.md · server.cjs 第 64 行那几行整段是空行` |
 | 部署集闸红 2 条 | 钉停在并线前的实数 | 合并基线跑 `node tools/deploy-set.mjs`：`R12 实际 34 条` vs 钉 32、`R13 实际 53 条` vs 钉 51 |
 | 上面这些**不是**本次改坏的 | 全部在并线提交 `b8a2ae8` 上就成立 | 基线复现：把 `js/view.js` / `js/core/storage.js` / `index.html` / `css/game.css` / `README.md` / `tools/deploy-set.mjs` 恢复到 `b8a2ae8` 的样子，上面每一条读数原样复现（`node --check` 直接报 `reduceMotion` 重复声明；浏览器闸的 console 段每段 5 条 `rm is not defined`；`@reloaded` 红 4 条） |
 
