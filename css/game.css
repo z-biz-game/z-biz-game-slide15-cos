@@ -185,3 +185,17 @@ a[href],
   min-height: 44px !important;
   min-width: 44px !important;
 }
+
+/* ============================================================
+   暂停：HUD 上那颗按钮 + 盘面上的「已暂停」遮罩
+   命中区不必再单写一份 —— 上面那条全局 44px 下限（button { min-height: 44px !important }）
+   已经兜住了每一个 button，这颗也一样；这里只管它长什么样。
+   ============================================================ */
+.hud #pause-btn { padding: 0 12px; font-size: 13px; }
+.pause-veil {
+  position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; align-content: center;
+  gap: 8px; background: rgba(12, 14, 18, 0.66); backdrop-filter: blur(2px); border-radius: 12px;
+}
+.pause-veil[hidden] { display: none; }
+.pause-title { font-size: 20px; letter-spacing: 0.24em; color: var(--brass); }
+.pause-note { font-size: 12px; color: var(--ink-dim); }

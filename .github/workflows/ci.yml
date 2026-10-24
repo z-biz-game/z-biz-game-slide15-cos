@@ -40,7 +40,7 @@ jobs:
       # 文档行号对账：README/DESIGN/deliverable 里那几十条「去看第 N 行」逐条开回文件对。
       # 它与本地整闸 tools/verify.sh、npm test 的链跑的是同一条命令（钉这条的是 D9b/D9c/D9d），
       # 不是又一份只给浏览器看的清单。它不进上面 Suites 那步：那一步的形状由 README 第四节的
-      # 「10 个套件」压着。
+      # 「11 个套件」压着。
       - name: Doc citations reconcile (文档行号对账)
         run: node tools/docs-test.mjs
 

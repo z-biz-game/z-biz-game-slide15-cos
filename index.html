@@ -26,6 +26,9 @@
   </nav>
   <p class="totals" id="totals"></p>
   <div class="hud">
+    <!-- 暂停键：这一页会自己往前跑的只有演示的自动走棋与滑块动画钟（js/core/pause.js），
+         所以这颗键停的是那两样，外加把盘面输入挡在门外。键盘 P / Esc 同一条路。 -->
+    <button type="button" id="pause-btn" aria-label="暂停游戏" aria-pressed="false" title="暂停（P）">暂停</button>
     <button type="button" id="help-btn" aria-label="玩法说明" title="玩法说明（?）">?</button>
     <button type="button" id="mute" aria-label="静音开关" aria-pressed="false" title="静音（M）">♪</button>
     <button type="button" id="fullscreen" aria-label="全屏" title="全屏（F）">⛶</button>
@@ -40,6 +43,12 @@
          the geometry measured at the last layout, so a message appearing must not be able to
          move a tile out from under the player's finger. -->
     <p class="hint-line" id="hintline"></p>
+    <!-- 暂停遮罩：暂停期间盘面不接受输入，这一层把"已暂停"写出来（可见的暂停态，
+         不是只有一颗按钮换个字）。恢复后这层撤掉，盘面从暂停处接着走。 -->
+    <div class="pause-veil" id="pause-veil" hidden>
+      <p class="pause-title">已暂停</p>
+      <p class="pause-note">盘面不接受输入 · 按 P 或点「继续」接着走</p>
+    </div>
     <div class="curtain" id="curtain" hidden>
       <div class="curtain-card">
         <p class="stars" id="stars"></p>

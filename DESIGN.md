@@ -134,14 +134,14 @@ siege      4  37-50  8    38-45   15.7%   11       0       0     32     0   17  
 ## 10. 2026-09-28 首次跑绿的事后账（一处产品 bug、三处断言自己写错、两处门禁漏洞）
 
 浏览器门禁第一次全跑时 `@play` 红 1 条、`@pointer` 红 3 条。逐条按实测数字处理后，
-node 94 条 / 7394 断言、浏览器 138 条全绿。
+node 103 条 / 7438 断言、浏览器 138 条全绿。
 
 **产品 bug（改应用，不是改测试）：分享按钮是死的。** `shareLink()` 写好了、`el.share` 也在
 `index.html` 里，但 `js/main.js` 一整串 `addEventListener` 里没有它 —— 点下去什么也没有，
 测试只能读到 `toastHidden: true`。补上 `el.share.addEventListener('click', shareLink);`。
 
 **断言写错之一：`超` 字段的算术。** 那条断言写着"两步之后玩家超最少 2 步"，并断言 `over === 2`。
-可是 kerb-02 的 par 是 4，而 `overPar()` 是 `Math.max(0, moves - par)`（`js/main.js:139-141`）：
+可是 kerb-02 的 par 是 4，而 `overPar()` 是 `Math.max(0, moves - par)`（`js/main.js:149-151`）：
 2 滑对 par 4 是**少于**最少，钳在 0。改成断言那个钳值 `over === 0`，同时把"超 2"这件事挪到它
 真正成立的地方 —— 6 滑对 par 4 的那一行，并且那里顺手加了 `over === moves - par` 的交叉检查。
 这不是放宽：同一条性质还在，只是钉在了算术支持的位置。

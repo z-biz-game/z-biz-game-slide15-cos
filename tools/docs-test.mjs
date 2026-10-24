@@ -24,9 +24,9 @@
 //
 // 这一腿不覆盖什么：它只证明印在纸上的行号还坐在它所描述的那几行上，不证明周围的句子。
 // 跑法：`npm run doctest` —— 同一条命令住在 npm test 的链里、tools/verify.sh 的单元段与 .github/workflows/ci.yml 里。
-// 它**不在** `npm run unit` 的那个 test/*.test.mjs 循环里：README 第四节印的是「节点层一共 10 个套件」，
-// 而 `verify.sh` 聚合的 `node assertions total` 只数那 10 个文件，把第十一套塞进同一条循环而不动那句话
-// 就是文档说谎，所以最后一条腿钉的就是"进链、不进循环、目录实数仍为 10"这三件事必须同时成立。
+// 它**不在** `npm run unit` 的那个 test/*.test.mjs 循环里：README 第四节印的是「节点层一共 11 个套件」，
+// 而 `verify.sh` 聚合的 `node assertions total` 只数那 11 个文件，把第十二套件塞进同一条循环而不动那句话
+// 就是文档说谎，所以最后一条腿钉的就是"进链、不进循环、目录实数仍为 11"这三件事必须同时成立。
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -371,9 +371,9 @@ ok('D9c CI 的那一步跑的也是这一条命令（与本地同一条，不是
 const unitScript = pkg.scripts.unit || '';
 const nodeSuites = fs.readdirSync(path.join(ROOT, 'test')).filter((f) => f.endsWith('.test.mjs')).length;
 ok('D9d 这条闸进 `npm test` 的链，但**不进** `npm run unit` 与 `node --test` 的那个 test/*.test.mjs 展开——' +
-  'README 第四节印的是「节点层一共 10 个套件」和合计 94 行 / 7394 条断言，那三个数数的都只是目录里那 10 个文件，' +
-  '把它算成第十一个套件就是文档说谎（这一格现在当场数目录里的套件数并等于 10）',
-  chain.includes(CMD) && !unitScript.includes('docs-test') && nodeSuites === 10,
+  'README 第四节印的是「节点层一共 11 个套件」和合计 103 行 / 7438 条断言，那三个数数的都只是目录里那 11 个文件，' +
+  '把它算成第十二个套件就是文档说谎（这一格现在当场数目录里的套件数并等于 11）',
+  chain.includes(CMD) && !unitScript.includes('docs-test') && nodeSuites === 11,
   `链含本闸=${chain.includes(CMD)} · unit=${unitScript} · test/*.test.mjs 实数 ${nodeSuites}`);
 
 // ── 打印 ──────────────────────────────────────────────────────────────────

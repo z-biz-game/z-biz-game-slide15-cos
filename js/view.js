@@ -46,6 +46,9 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
   let moving = false; // is any tile still travelling (or still shaking)? `settled()` reads it
   let raf = 0;
   let last = 0;
+  // 暂停：这一页的滑块动画钟停不停，由 js/main.js 接线、状态住在 js/core/pause.js 那边。
+  // 这里只留一个"现在是不是暂停着"的副本，用来停住步进与挡住指针。
+  let paused = false;
 
   // ---- 减弱动效（prefers-reduced-motion）----
   // 两处装饰：① 提示环 t = (now % 1100) / 1100 喂给线宽、外扩与透明度；② 被拒的那块
@@ -54,7 +57,8 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
   // 推得动"），抖动是叠在读数上的装饰，归零位移不损失信息；提示环本体一律留着。
   // ax/ay 那一路是**状态反馈**（块正被推到哪一格），刻意不碰。与 hashi / nine-rings 同口径。
   let reduceMotion = false;
-  const ringPhase = () => (reduceMotion ? 0.5 : (performance.now() % 1100) / 1100);
+  // 暂停时装饰环也停：它在墙钟上转，继续转就是"画面还在动而盘面不动"。
+  const ringPhase = () => (reduceMotion ? 0.5 : paused ? 0.5 : (performance.now() % 1100) / 1100);
   let warm = 0; // first frames always repaint, so the canvas is never blank
 
   // 减弱动效的**开关在这里，翻开关的动作在 js/main.js**：那边读 matchMedia、订阅系统偏好的
@@ -179,6 +183,7 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
   // travel, it is a drag and the slide fires the moment the tile is past a third of a cell —
   // so the picture keeps up with the finger. If it does not move, the release is a click.
   function down(ev) {
+    if (paused) return; // 暂停期间指针进不来：按下去什么也不发生
     if (!game || game.done) return;
     const cell = cellAtClient(ev.clientX, ev.clientY);
     if (cell < 0) return; // bare table is not a tile, and costs nothing
@@ -425,10 +430,13 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
 
   function frame(now) {
     raf = requestAnimationFrame(frame);
+    // 暂停：动画钟停住。**不调 step** —— dt 置 0 也不行，step 里有一道 0.12 的下限，
+    // 0 的 dt 仍会把方块往前推一截；而 last 照旧刷新，于是恢复后的第一帧 dt 很小，
+    // 方块从暂停处接着走，不跳格。
     const dt = Math.min(0.064, (now - (last || now)) / 1000);
     last = now;
-    const busy = step(dt);
-    const hintAlive = !!(hint && now < hint.until);
+    const busy = paused ? false : step(dt);
+    const hintAlive = !!(hint && (paused || now < hint.until));
     if (busy || hintAlive || drag || warm < 4) {
       warm++;
       draw();
@@ -515,6 +523,14 @@ export function createView(canvas, { onSlide, onIllegal } = {}) {
     },
     legalCells() {
       return game ? Array.from(slidePositions(game.state)) : [];
+    },
+    // 暂停：停住动画钟（rAF 不再推进）、挡住指针输入，并让一个拖到一半的手势作废。
+    // 恢复时不跳格，由 frame() 里"last 照旧刷新"那一条保证。
+    setPaused(on) {
+      const next = !!on;
+      if (next === paused) return;
+      paused = next;
+      if (paused) cancel();
     },
     // False while a tile is still travelling or a refusal is still shaking: an automated
     // finger waits on this instead of guessing a sleep duration, so the pixel fingerprints it

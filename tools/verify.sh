@@ -196,8 +196,8 @@ echo "=== deploy-set ==="
 node tools/deploy-set.mjs || FAILED=1
 node tools/deploy-set-selftest.mjs || FAILED=1
 # 文档行号对账：README/DESIGN/deliverable 里印着的每一条 `文件:行号` 都要开回文件对一遍。
-# 它**不在**上面的 test/*.test.mjs 循环里，也不进 `npm run unit`：README 第四节的「10 个套件 / 94 行 /
-# 7394 断言」数的就是那 10 个文件，混进去就是文档说谎。放在尾段而不是 SKIP_UNIT 段里，
+# 它**不在**上面的 test/*.test.mjs 循环里，也不进 `npm run unit`：README 第四节的「11 个套件 / 103 行 /
+# 7438 断言」数的就是那 11 个文件，混进去就是文档说谎。放在尾段而不是 SKIP_UNIT 段里，
 # 于是 CI 的 node job 与本地整闸、浏览器 job 都会跑它，一条命令三处同一份。
 echo "=== doctest ==="
 node tools/docs-test.mjs || FAILED=1

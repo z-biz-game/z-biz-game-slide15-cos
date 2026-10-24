@@ -15,6 +15,7 @@ import { todayKey } from './core/rng.js';
 import { toArray, goalState } from './core/puzzle.js';
 import { createView } from './view.js';
 import { createAudio } from './audio.js';
+import { createPause } from './core/pause.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -40,6 +41,9 @@ const LOTS = ALL.length;
 // whole reason a truncated search is refused in js/core/solve.js too.
 const HINT_BUDGET = { nodeLimit: 150000, timeLimitMs: 600 };
 const DEMO_BUDGET = { nodeLimit: 400000, timeLimitMs: 2000 };
+// 演示自动走棋的节拍（毫秒）。节拍号由 js/core/pause.js 的活动时钟推进，所以暂停期间它
+// 不前进——演示站住不动；恢复后接着走，不补跑暂停期间攒下的节拍，也不重复落同一拍。
+const DEMO_BEAT_MS = 220;
 
 const app = {
   mode: 'campaign',
@@ -98,6 +102,11 @@ if (store.muted) {
   el.mute.textContent = '🔇';
 }
 
+// 暂停：这一页会自己往前跑的东西只有两样——演示的自动走棋（startDemo 的 setInterval）
+// 与滑块动画钟（view.js 的 rAF 步进）。它们连同"盘面输入要不要放行"都由
+// js/core/pause.js 的同一份状态管住，这里只是接线。
+const pause = createPause();
+
 const view = createView(el.canvas, {
   onSlide: (pos) => commit(pos),
   onIllegal: (pos, value) => {
@@ -109,6 +118,7 @@ const view = createView(el.canvas, {
 
 function setGame(lot, label) {
   stopDemo('');
+  setPaused(false); // 换盘就是新的一局：不带着暂停态进下一盘
   app.lot = lot;
   app.label = label || app.label;
   app.game = createGame(lot);
@@ -237,6 +247,8 @@ function token() {
 
 // The one place a move happens. Returns true when a tile actually slid.
 function commit(pos) {
+  // 暂停期间盘面输入被挡在门外：不落子、不计数、不改盘面（js/core/pause.js 的那道门）。
+  if (!pause.allowInput()) return false;
   const moved = tap(app.game, pos);
   if (!moved) {
     view.redraw();
@@ -381,7 +393,11 @@ function startDemo() {
   demoSteps = 0;
   el.demo.textContent = '停止';
   el.demo.setAttribute('aria-pressed', 'true');
+  pause.rebase(DEMO_BEAT_MS); // 演示的第一拍在一个节拍之后，不是"立刻"
   demoTimer = setInterval(() => {
+    // 自走节拍由**活动时钟**推进：暂停期间节拍号不前进 ⇒ 演示不走；恢复后接着走，
+    // 不补跑暂停期间攒下的节拍（不跳格），也不重复落同一拍（不重复累加）。
+    if (!pause.tick(DEMO_BEAT_MS)) return;
     const pos = demoRoute[demoSteps];
     if (pos === undefined || app.game.done || ++demoSteps > app.game.par + 8) {
       stopDemo('');
@@ -410,6 +426,8 @@ el.modes.addEventListener('click', (ev) => {
 });
 
 el.undo.addEventListener('click', () => {
+  // 暂停期间撤销也挡：撤销是改盘面，和落子一样属于"动盘面"。
+  if (pause.paused) { say('暂停中 —— 先继续再撤销'); return; }
   stopDemo('');
   hintCache = null;
   if (undo(app.game)) {
@@ -423,6 +441,7 @@ el.restart.addEventListener('click', restart);
 
 function restart() {
   stopDemo('');
+  setPaused(false); // 重开也是新的一局
   hintCache = null;
   reset(app.game);
   app.hints = 0;
@@ -516,7 +535,10 @@ window.addEventListener('keydown', (ev) => {
   if (k === 'Escape') {
     if (!el.help.hidden) { closeHelp(); return; }
     if (!el.curtain.hidden) { el.curtain.hidden = true; return; }
+    togglePause(); // 说明浮层与结算卡都没开时，Esc 就是暂停 / 继续
+    return;
   }
+  if (k === 'p' || k === 'P') { togglePause(); return; }
   if (k === '?' || (k === '/' && ev.shiftKey)) { toggleHelp(); return; }
   if (k === 'm' || k === 'M') { toggleMute(); return; }
   if (k === 'f' || k === 'F') { toggleFullscreen(); return; }
@@ -572,9 +594,13 @@ window.slide15 = {
       muted: audio.muted,
       audio: audio.state,
       help: !el.help.hidden,
+      paused: pause.paused,
+      elapsed: pause.elapsedMs(),
     };
   },
   toggleMuteOnce() { toggleMute(); return audio.muted; },
+  // 暂停：浏览器闸可以按一次，看看盘面是不是真的停住了。
+  togglePause() { return togglePause(); },
   toggleFullscreen() { toggleFullscreen(); return !!document.fullscreenElement; },
   openHelp() { openHelp(); return !el.help.hidden; },
   closeHelp() { closeHelp(); return !el.help.hidden; },
@@ -764,3 +790,42 @@ if (motionQuery) {
 }
 window.slide15.setReduceMotion = applyReduceMotion;
 window.slide15.isReducedMotion = () => view.isReducedMotion();
+
+// ---- 暂停：按钮 / 键盘 / 遮罩 / 动画钟 ----------------------------------------------
+//
+// 这一页**没有面向玩家的秒表**（读数是滑数不是秒数）。真正会自己往前跑的是两样东西：
+// 演示的自动走棋（startDemo 的 setInterval）与滑块动画钟（view.js 的 rAF 步进）。
+// 暂停停住的就是这两样，外加把盘面输入挡在门外——三件事都由 js/core/pause.js 的同一份
+// 状态驱动，壳层只负责接线与把状态画出来。
+const pauseBtn = $('pause-btn');
+const pauseVeil = $('pause-veil');
+
+function syncPause() {
+  const held = pause.paused;
+  if (pauseBtn) {
+    pauseBtn.textContent = held ? '继续' : '暂停';
+    pauseBtn.setAttribute('aria-pressed', String(held));
+    pauseBtn.setAttribute('aria-label', held ? '继续游戏' : '暂停游戏');
+    pauseBtn.title = held ? '继续（P）' : '暂停（P）';
+  }
+  if (pauseVeil) pauseVeil.hidden = !held;
+}
+
+function setPaused(on) {
+  const held = !!on;
+  if (held === pause.paused) return;
+  if (held) pause.pause(); else pause.resume();
+  view.setPaused(held); // 动画钟停住：rAF 不再推进，恢复时不跳格
+  syncPause();
+}
+
+function togglePause() {
+  setPaused(!pause.paused);
+  say(pause.paused
+    ? '已暂停 —— 盘面不接受输入，按 P 或点「继续」接着走'
+    : '继续 —— 演示节拍与滑块动画从暂停处接着走');
+  return pause.paused;
+}
+
+if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+syncPause();

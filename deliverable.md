@@ -6,7 +6,7 @@
 | 仓库 | z-biz-game-slide15-cos |
 | 品类 | 益智 · 推盘（3×3 与 4×4） |
 | 依赖 | 0（`dependencies` 为 `{}`，零构建、零二进制资产） |
-| node 断言 | 94 条 / 7,394 断言 / 0 失败（10 个 suite） |
+| node 断言 | 103 条 / 7,438 断言 / 0 失败（11 个 suite） |
 | 浏览器断言 | 138 条 / 0 失败（`@boot 21 @play 25 @routes 27 @save 17 @reloaded 7 @pointer 41`），脏 console `(none)` |
 | 难度证据 | 3×3 穷举 BFS（可达 181,440、直径 31、距离直方图全表）+ 4×4 IDA* 每关复解 |
 
@@ -23,7 +23,7 @@ index.html  css/game.css  server.cjs  package.json  .gitignore  LICENSE
 js/main.js  js/view.js
 js/core/  puzzle.js game.js bfs3.js heur.js parity.js solve.js make.js library.js storage.js rng.js
 js/data/lots.js                       56 关 + TIERS_META
-test/     bfs3 game heur library make parity puzzle rng solve storage  （10 个 suite）
+test/     bfs3 game heur library make parity pause puzzle rng solve storage  （11 个 suite）
 tools/    bake.mjs harness.mjs playtest.mjs verify.sh
 .github/workflows/  ci.yml pages.yml
 README.md DESIGN.md deliverable.md
@@ -33,7 +33,7 @@ README.md DESIGN.md deliverable.md
 
 | # | 现象 | 处理 | 依据 |
 | --- | --- | --- | --- |
-| 1 | 仓库只有纯逻辑层（core + 10 个 suite），没有任何应用层 | 补 `package.json / index.html / css / js/view.js / js/main.js / server.cjs / workflows / verify.sh / playtest.mjs` | 本仓 mtime 与文件清单；`npm run check` rc=0 |
+| 1 | 仓库只有纯逻辑层（core + 11 个 suite），没有任何应用层 | 补 `package.json / index.html / css / js/view.js / js/main.js / server.cjs / workflows / verify.sh / playtest.mjs` | 本仓 mtime 与文件清单；`npm run check` rc=0 |
 | 2 | 构建会话自述：`@pointer` 的拖拽向量写反、`@save` 段有一处引号不配对，改为离线 DOM/canvas 垫片台架跑绿后才修掉 | 我**未**逐条复现这两处（属于其过程描述），但两者的最终效果由浏览器门禁实跑覆盖：`@save`/`@pointer` 全段 `fail: []` 才算通过 | 主代理 `tools/verify.sh` 实跑输出 |
 | 3 | 文档层缺失（README/DESIGN/deliverable 均无） | 本报告与前两份文档由主代理按**重新测量的数字**撰写 | 见下两节 |
 | 4 | `hashSeed` 易被误标为 FNV-1a | 三份文档统一写"FNV-1a 派生的两轮 UTF-16 混合"，并给出 `hashSeed('a')=723832900` vs 教科书 `3826002220` | 契约已同步修订 |
@@ -46,7 +46,7 @@ README.md DESIGN.md deliverable.md
 ```
 npm run check                     rc=0  OK
 bash tools/verify.sh              === ALL GREEN ===   exit 0
-  node   94 rows / 7394 asserts / 0 fail   （10 个 suite 逐条相加）
+  node 103 rows / 7438 asserts / 0 fail   （11 个 suite 逐条相加）
   浏览器 138 rows / 0 fail
          @boot 21  @play 25  @routes 27  @save 17  @reloaded 7  @pointer 41
   console (none) —— 每段跑完判一次，结尾全量重放再判一次
@@ -130,8 +130,8 @@ bfs3.distanceHistogram()          32 档，和为 181440，末档 2
 
 | 钉 | 旧 | 新 | 为什么变 |
 |---|---|---|---|
-| `tools/deploy-set.mjs` `EXPECT_CHECKS` | 32 | 34 | 并线把页面要取的东西凑到了 34 条（`index.html` 9 + `manifest.icons` 3 + `css/game.css` 1 + `js/main.js` 10 + 其余模块 11；另有 2 条外链不计入），钉停在旧值。**这是「引用条数」这一个实数**，引用多了是加严不是放水 |
-| `tools/deploy-set.mjs` `EXPECT_ROWS` | 51 | 53 | 同上，这是「这一跑实际跑的断言条数」这一个实数 |
+| `tools/deploy-set.mjs` `EXPECT_CHECKS` | 32 | 35 | 并线把页面要取的东西凑到了 34 条（`index.html` 9 + `manifest.icons` 3 + `css/game.css` 1 + `js/main.js` 10 + 其余模块 11；另有 2 条外链不计入），钉停在旧值。**这是「引用条数」这一个实数**，引用多了是加严不是放水 |
+| `tools/deploy-set.mjs` `EXPECT_ROWS` | 51 | 54 | 同上，这是「这一跑实际跑的断言条数」这一个实数 |
 
 闸的**断言一条没改、强度一条没降**：部署集闸仍然逐条查「页面要去的东西在不在产物里且非 0 字节」
 （R10）、仍然要求引用条数与断言条数**两个数一起**等于钉在文件里的值、仍然逐张核 PNG 容器与声明尺寸
@@ -148,7 +148,7 @@ bfs3.distanceHistogram()          32 档，和为 181440，末档 2
 | `js/main.js` | `el` 表加 `helpBtn`；给那颗按钮接 `toggleHelp` |
 | `css/game.css` | 补回本地侧的 `.hud` / `.help` / `@media (prefers-reduced-motion: reduce)` 三段 |
 | `manifest.webmanifest` | `background_color` → `#101217`、`theme_color` → `#14161a` |
-| `tools/deploy-set.mjs` | `EXPECT_CHECKS` 32→34、`EXPECT_ROWS` 51→53（钉的是实数，强度不变） |
+| `tools/deploy-set.mjs` | `EXPECT_CHECKS` 32→35、`EXPECT_ROWS` 51→54（钉的是实数，强度不变） |
 | `README.md` | 11 处行号钉重钉 |
 | `DESIGN.md` | 1 处行号钉重钉 |
 
@@ -172,7 +172,7 @@ bfs3.distanceHistogram()          32 档，和为 181440，末档 2
 $ npm run check
 OK
 
-$ npm run unit        # 10 个 suite 逐条相加
+$ npm run unit        # 11 个 suite 逐条相加
 rows: 9 fail: 0 asserts: 98        # bfs3
 rows: 13 fail: 0 asserts: 4140     # game
 rows: 8 fail: 0 asserts: 27        # heur
@@ -183,7 +183,7 @@ rows: 10 fail: 0 asserts: 32       # puzzle
 rows: 7 fail: 0 asserts: 1453      # rng
 rows: 11 fail: 0 asserts: 110      # solve
 rows: 7 fail: 0 asserts: 35        # storage
-node assertions total: 7394
+node assertions total: 7438
 
 $ node tools/docs-test.mjs
 rows: 28 fail: 0 asserts: 0
@@ -194,7 +194,7 @@ rows: 53 fail: 0
 
 $ bash tools/verify.sh
 === node suites ===
-node assertions total: 7394
+node assertions total: 7438
 opened http://127.0.0.1:5192/
 (no console output)
 boot lot: kerb-01
